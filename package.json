@@ -2,7 +2,7 @@
   "name": "copilot-terminal-monitor",
   "displayName": "Copilot Terminal Monitor",
   "description": "Monitors terminal commands and notifies if no output is received for a specified duration.",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "publisher": "LunarWerx",
   "author": {
     "name": "LunarWerx",

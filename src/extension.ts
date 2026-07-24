@@ -49,8 +49,35 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	};
 
+	const removeExecution = (data: ExecutionData) => {
+		if (data.dismissNotification) {
+			data.dismissNotification();
+			data.dismissNotification = undefined;
+		}
+		for (const [execution, execData] of activeExecutions.entries()) {
+			if (execData === data) {
+				activeExecutions.delete(execution);
+				break;
+			}
+		}
+	};
+
+	const isTerminalAlive = (terminal: vscode.Terminal): boolean => {
+		// Terminal has exited if exitStatus is set
+		if (terminal.exitStatus !== undefined) {
+			return false;
+		}
+		// Also check if it still appears in the terminal list
+		return vscode.window.terminals.includes(terminal);
+	};
+
 	const terminateExecution = async (data: ExecutionData) => {
 		const config = vscode.workspace.getConfiguration('terminalIdleMonitor');
+		// If terminal is already dead, just clean up the map entry
+		if (!isTerminalAlive(data.terminal)) {
+			removeExecution(data);
+			return;
+		}
 		if (config.get<boolean>('useSigInt')) {
 			data.terminationAttempts++;
 			const maxRetries = config.get<number>('hardTerminateRetries') || 3;
@@ -542,6 +569,17 @@ export function activate(context: vscode.ExtensionContext) {
 		let activeTerminalDataFound = false;
 		let monitoredTasksCount = 0;
 
+		// Prune stale entries for terminals that no longer exist
+		for (const [execution, data] of Array.from(activeExecutions.entries())) {
+			if (!isTerminalAlive(data.terminal)) {
+				if (data.dismissNotification) {
+					data.dismissNotification();
+					data.dismissNotification = undefined;
+				}
+				activeExecutions.delete(execution);
+			}
+		}
+
 		// Use Array.from to avoid issues if the map is modified during iteration (e.g. by terminal disposal)
 		for (const data of Array.from(activeExecutions.values())) {
 			if (isTerminalExcluded(data.terminal.name)) {
@@ -837,6 +875,21 @@ export function activate(context: vscode.ExtensionContext) {
 				data.dismissNotification = undefined;
 			}
 			activeExecutions.delete(e.execution);
+		}),
+	);
+
+	// Clean up executions when a terminal is closed
+	context.subscriptions.push(
+		vscode.window.onDidCloseTerminal((closedTerminal) => {
+			for (const [execution, data] of Array.from(activeExecutions.entries())) {
+				if (data.terminal === closedTerminal) {
+					if (data.dismissNotification) {
+						data.dismissNotification();
+						data.dismissNotification = undefined;
+					}
+					activeExecutions.delete(execution);
+				}
+			}
 		}),
 	);
 
