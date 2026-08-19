@@ -8,13 +8,13 @@
     "name": "LunarWerx",
     "url": "https://github.com/LunarWerx"
   },
-  "homepage": "https://github.com/LunarWerx/copilot-terminal-monitor",
+  "homepage": "https://github.com/LunarWerxs/CopilotTerminalMonitor",
   "repository": {
     "type": "git",
-    "url": "https://github.com/LunarWerx/copilot-terminal-monitor"
+    "url": "https://github.com/LunarWerxs/CopilotTerminalMonitor"
   },
   "bugs": {
-    "url": "https://github.com/LunarWerx/copilot-terminal-monitor/issues"
+    "url": "https://github.com/LunarWerxs/CopilotTerminalMonitor/issues"
   },
   "icon": "icon.png",
   "engines": {
