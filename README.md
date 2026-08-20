@@ -1,6 +1,6 @@
 # Terminal Idle Monitor
 
-[![Version](https://img.shields.io/badge/version-1.4.2-blue.svg)](https://marketplace.visualstudio.com/items?itemName=LunarWerx.copilot-suite)
+[![Version](https://img.shields.io/badge/version-1.4.2-blue.svg)](https://marketplace.visualstudio.com/items?itemName=LunarWerx.copilot-terminal-monitor)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.100.0+-007ACC.svg)](https://code.visualstudio.com/)
 
 ### Recommended Tools

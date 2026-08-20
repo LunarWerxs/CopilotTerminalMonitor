@@ -2,6 +2,34 @@
 
 All notable changes to the "terminal-idle-monitor" extension will be documented in this file.
 
+## [1.4.2] - 2026-07-24
+
+### Fixed
+- **Stale Session Cleanup**: Terminals that have exited are now pruned from monitoring, so the status bar count and the Background Tasks list no longer show sessions that already ended.
+- **Closed Terminal Handling**: Closing a terminal now immediately clears its monitoring entry and dismisses any notification it was showing.
+- **Safe Terminate**: Choosing Terminate on a session whose terminal is already gone now simply cleans up instead of attempting to kill a dead terminal.
+
+## [1.4.1] - 2026-02-08
+
+### Added
+- **Full Control From the Status Bar**: The status bar menu now acts on the active terminal directly with Reset Timer, Snooze 5m/10m/15m, and Terminate.
+- **Background Tasks Menu**: Every monitored background terminal is listed with its command and idle time, plus a single "Terminate All Background Tasks" action.
+- **Monitored Task Count**: The status bar shows how many sessions are being watched, for example `(3) tasks`.
+- **Per-Workspace Auto-Terminate**: Auto-Terminate now has a separate "Enable for THIS Workspace" override alongside the global toggle. It appears only when a folder is open.
+
+### Changed
+- **Non-Intrusive Alerts**: Standard idle and total-runtime alerts are now persistent progress notifications instead of pop-up toasts. They stay visible while the command sits idle and clear themselves the moment output resumes or the command finishes. Obnoxious Mode alerts remain modal with their buttons.
+- **Per-Window Flashing by Default**: `obnoxiousPerWindow` now defaults to `true`, so Obnoxious Mode flashing affects only the current window instead of every open window.
+- **Reduced Disk Pressure**: The flash interval slowed from 500ms to 1s to further reduce writes to `settings.json`.
+- **Always-Available Actions**: Terminate and Exclude Terminal are now always offered in alerts.
+- **Safer Reset Settings**: Reset now only clears values that were actually set, and only removes workspace overrides for settings that support them, so it no longer wipes unrelated workspace configuration.
+
+### Removed
+- **`terminalIdleMonitor.showTerminateButton`**: Removed. Terminate is always offered in alerts now, so the toggle no longer served a purpose.
+
+### Fixed
+- **Menu Action Matching**: Status bar menu entries are matched exactly rather than by substring, fixing cases where selecting one item could trigger another.
+
 ## [1.3.4] - 2026-02-07
 
 ### Changed

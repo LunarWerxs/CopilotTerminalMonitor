@@ -10,3 +10,11 @@ eslint.config.mjs
 vsc-extension-quickstart.md
 .gitignore
 *.map
+out/**
+**/*.map
+bun.lock
+bun.lockb
+package-lock.json
+node_modules/**
+.github/**
+**/.DS_Store

@@ -1,0 +1,81 @@
+name: Release
+
+# Publishes the extension to the VS Code Marketplace.
+#
+# Triggered by pushing a version tag (v1.4.2), or run by hand from the Actions tab.
+# There is deliberately no push-to-main trigger: publishing is a release act, not a
+# side effect of committing.
+#
+# Requires a repository secret named VSCE_PAT (a Marketplace personal access token
+# for the LunarWerx publisher). Without it the job stops with a clear message
+# instead of failing in a confusing way half way through.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Package only, do not publish'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check-types
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Package
+        run: npx @vscode/vsce package --allow-star-activation
+
+      - name: Check tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::Tag v$tag does not match package.json version $pkg"
+            exit 1
+          fi
+          echo "Tag and package.json agree on $pkg"
+
+      - name: Upload the .vsix as a build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: '*.vsix'
+
+      - name: Publish to the Marketplace
+        if: startsWith(github.ref, 'refs/tags/v') && inputs.dry_run != true
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::VSCE_PAT is not set. Add it under Settings > Secrets and variables > Actions, then re-run."
+            exit 1
+          fi
+          npx @vscode/vsce publish --packagePath ./*.vsix
+
+      - name: Attach the .vsix to the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: '*.vsix'
+          generate_release_notes: true
