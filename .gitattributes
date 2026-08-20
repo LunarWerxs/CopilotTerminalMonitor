@@ -1,0 +1,9 @@
+# Normalise text to LF in the repository. Without this, a checkout on Windows
+# with core.autocrlf=true can commit CRLF into the GitHub Actions workflow, and
+# the \r then leaks into its `run:` shell blocks and breaks string comparisons
+# on the Linux runner.
+* text=auto eol=lf
+
+*.png binary
+*.vsix binary
+*.ico binary
