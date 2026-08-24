@@ -7,7 +7,6 @@
 
 <a href="https://marketplace.visualstudio.com/items?itemName=LunarWerx.copilot-suite"><img src="https://res.cloudinary.com/dicsgc72e/image/upload/h_120,q_100/v1763756097/ai_suite_badge_ifasdy.png" height="33" alt="CopSuite"></a>
 <a href="https://marketplace.visualstudio.com/items?itemName=LunarWerx.copilot-terminal-monitor"><img src="https://res.cloudinary.com/dicsgc72e/image/upload/h_120,q_100/v1770459131/tmonitor_badge_rfsgvr.png" height="33" alt="TerminalMonitor"></a>
-<a href="https://marketplace.visualstudio.com/items?itemName=LunarWerx.frameref-mcp"><img src="https://res.cloudinary.com/dicsgc72e/image/upload/h_120,q_100/v1763756097/frame_ref_badge_l4znt6.png" height="33" alt="FrameRef"></a>
 
 Copilot Terminal Monitor is a VS Code extension that tracks commands running in your integrated terminal and notifies you when one produces no output for a set duration or exceeds a total run-time limit, with optional automatic termination and a status bar indicator showing live runtime and idle state.
 
