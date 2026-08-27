@@ -620,8 +620,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 			const isPastIdle = idle >= idleTimeout;
 			const isPastObnoxious =
-				obnoxiousTimeout !== null &&
-				obnoxiousTimeout !== undefined &&
+				obnoxiousTimeout != null &&
 				idle >= obnoxiousTimeout;
 
 			let triggerIdleNow = false;
@@ -703,13 +702,13 @@ export function activate(context: vscode.ExtensionContext) {
 								cancellable: true,
 							},
 							(progress, token) => {
-								return new Promise<void>((resolve) => {
-									data.dismissNotification = resolve;
-									token.onCancellationRequested(() => {
-										data.dismissNotification = undefined;
-										resolve();
-									});
+								const { promise, resolve } = Promise.withResolvers<void>();
+								data.dismissNotification = resolve;
+								token.onCancellationRequested(() => {
+									data.dismissNotification = undefined;
+									resolve();
 								});
+								return promise;
 							},
 						)
 						.then(() => {
@@ -786,13 +785,13 @@ export function activate(context: vscode.ExtensionContext) {
 								cancellable: true,
 							},
 							(progress, token) => {
-								return new Promise<void>((resolve) => {
-									data.dismissNotification = resolve;
-									token.onCancellationRequested(() => {
-										data.dismissNotification = undefined;
-										resolve();
-									});
+								const { promise, resolve } = Promise.withResolvers<void>();
+								data.dismissNotification = resolve;
+								token.onCancellationRequested(() => {
+									data.dismissNotification = undefined;
+									resolve();
 								});
+								return promise;
 							},
 						)
 						.then(() => {
