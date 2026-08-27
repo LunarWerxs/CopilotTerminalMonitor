@@ -3,3 +3,6 @@ dist
 node_modules
 .vscode-test/
 *.vsix
+
+# Generated symbol digest (~/.claude/tools/codemap.py) - local artifact, never committed.
+.claude/codemap/
