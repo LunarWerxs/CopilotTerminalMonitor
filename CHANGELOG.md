@@ -2,6 +2,11 @@
 
 All notable changes to the "terminal-idle-monitor" extension will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **Pure logic extracted for testing**: The terminal-output timing, idle/obnoxious escalation, and menu-decision logic moved out of `extension.ts` into `src/logic.ts` (vscode-free, behaviour unchanged) so it can run under a fast `node --test` unit gate. `npm test` now runs those unit tests; the VS Code extension-host suite moved to `npm run test:vscode`. Added `.github/workflows/ci.yml` to run type-check, lint, and the unit tests on every push and pull request.
+
 ## [1.4.2] - 2026-07-24
 
 ### Fixed

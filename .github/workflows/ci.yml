@@ -1,0 +1,40 @@
+name: CI
+
+# Fast, no-VS-Code gate for every push and pull request: typecheck, lint,
+# and the pure-logic unit tests (node --test over src/logic.ts, see
+# test/logic.test.ts). Deliberately does not run the vscode-test
+# extension-host suite (`npm run test:vscode`) - that downloads and opens a
+# real VS Code window, which is not something a shared CI runner should do
+# on every push. Release-time gating (type check, lint, package) lives in
+# release.yml and is untouched by this file.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check-types
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit test the pure logic
+        run: npm test

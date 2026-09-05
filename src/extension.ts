@@ -1,4 +1,15 @@
 import * as vscode from 'vscode';
+import {
+	isNameExcluded,
+	computeIdleTiming,
+	computeIdleTrigger,
+	shouldFireTotalNotification,
+	shouldAutoTerminate,
+	summarizeCommand,
+	parseSnoozeMinutes,
+	computeDestructiveToggle,
+	computeStatusBarIcon,
+} from './logic';
 
 interface ExecutionData {
 	startTime: number;
@@ -46,23 +57,11 @@ function hasWorkspaceFolder(): boolean {
 
 const isTerminalExcluded = (terminalName: string): boolean => {
 	const config = vscode.workspace.getConfiguration('terminalIdleMonitor');
-	if (!config.get<boolean>('enableExclusions')) {
-		return false;
-	}
-	const excludePatterns = config.get<string>('excludePatterns') || '';
-	if (!excludePatterns) {
-		return false;
-	}
-	const patterns = excludePatterns.split(',').map((p) => p.trim());
-	return patterns.some((p) => {
-		const regex = new RegExp(
-			'^' +
-				p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*') +
-				'$',
-			'i',
-		);
-		return regex.test(terminalName);
-	});
+	return isNameExcluded(
+		terminalName,
+		!!config.get<boolean>('enableExclusions'),
+		config.get<string>('excludePatterns') || '',
+	);
 };
 
 const isTerminalAlive = (terminal: vscode.Terminal): boolean => {
@@ -156,10 +155,7 @@ function createStatusBar(state: MonitorState): void {
 	const isGlobalDestructive = inspect?.globalValue === true;
 	const isDestructive = config.get<boolean>('autoTerminateEnabled');
 
-	let icon = '$(terminal-cmd)';
-	if (isDestructive) {
-		icon = isGlobalDestructive ? '$(warning)' : '$(chat-sparkle-warning)';
-	}
+	const icon = computeStatusBarIcon(!!isDestructive, isGlobalDestructive);
 
 	state.statusBarItem.text = icon;
 	state.statusBarItem.tooltip = `Terminal Idle Monitor${isDestructive ? ' (Destructive' + (isGlobalDestructive ? ' - Global' : ' - Workspace') + ')' : ''}`;
@@ -360,8 +356,7 @@ async function snoozeFromMenu(
 	activeExecution: ExecutionData,
 	label: string,
 ): Promise<void> {
-	const minsMatch = label.match(/\d+/);
-	const mins = minsMatch ? parseInt(minsMatch[0]) : 5;
+	const mins = parseSnoozeMinutes(label);
 	applySnooze(config, activeExecution, mins);
 	await stopFlashing(state);
 	if (activeExecution.dismissNotification) {
@@ -421,8 +416,7 @@ async function toggleDestructiveModeFromMenu(
 	globalValue: boolean,
 	workspaceValue: boolean,
 ): Promise<void> {
-	const isWorkspaceToggle = label.includes('(Workspace)');
-	const newValue = isWorkspaceToggle ? !workspaceValue : !globalValue;
+	const { isWorkspaceToggle, newValue } = computeDestructiveToggle(label, globalValue, workspaceValue);
 	const target = isWorkspaceToggle
 		? vscode.ConfigurationTarget.Workspace
 		: vscode.ConfigurationTarget.Global;
@@ -626,7 +620,7 @@ async function showModalAlert(
 	} else if (s === 'Exclude Terminal') {
 		await handleExcludeAction(state, data);
 	} else if (s?.startsWith('Snooze')) {
-		const mins = parseInt(s.match(/\d+/)![0]);
+		const mins = parseSnoozeMinutes(s);
 		applySnooze(config, data, mins);
 	}
 }
@@ -653,42 +647,6 @@ function showProgressAlert(state: MonitorState, message: string, data: Execution
 			state.isNotificationShowing = false;
 			state.lastNotificationCloseTime = Date.now();
 		});
-}
-
-function computeIdleTrigger(
-	state: MonitorState,
-	data: ExecutionData,
-	now: number,
-	isPastIdle: boolean,
-	isPastObnoxious: boolean,
-	isObnoxiousMode: boolean,
-): { triggerIdleNow: boolean; isObnoxious: boolean } {
-	let triggerIdleNow = false;
-	let isObnoxious = false;
-
-	if (state.isNotificationShowing || now - state.lastNotificationCloseTime <= 2000) {
-		return { triggerIdleNow, isObnoxious };
-	}
-
-	if (!data.obnoxiousNotified) {
-		if (isPastObnoxious) {
-			triggerIdleNow = true;
-			isObnoxious = true;
-		} else if (data.forceNextObnoxious && isPastIdle) {
-			triggerIdleNow = true;
-			isObnoxious = true;
-		} else if (isObnoxiousMode && isPastIdle && !data.idleNotified) {
-			triggerIdleNow = true;
-			isObnoxious = true;
-		}
-	}
-
-	if (!triggerIdleNow && !data.idleNotified && isPastIdle) {
-		triggerIdleNow = true;
-		isObnoxious = false;
-	}
-
-	return { triggerIdleNow, isObnoxious };
 }
 
 function fireIdleNotification(
@@ -797,8 +755,7 @@ async function checkOneExecution(
 
 	const matchedActiveTerminal = data.terminal === ctx.activeTerminal;
 	const isSnoozed = ctx.now < data.snoozeUntil;
-	const elapsed = Math.floor((ctx.now - data.startTime) / 1000);
-	const idle = Math.floor((ctx.now - data.lastActivity) / 1000);
+	const { elapsed, idle } = computeIdleTiming(ctx.now, data.startTime, data.lastActivity);
 
 	if (matchedActiveTerminal && state.statusBarItem) {
 		state.statusBarItem.text = isSnoozed
@@ -811,10 +768,7 @@ async function checkOneExecution(
 		return { monitored: true, matchedActiveTerminal };
 	}
 
-	const cmdSummary =
-		data.commandLine.length > 30
-			? data.commandLine.substring(0, 27) + '...'
-			: data.commandLine;
+	const cmdSummary = summarizeCommand(data.commandLine);
 
 	const idleTimeout = ctx.config.get<number>('idleTimeout') || 60;
 	const obnoxiousTimeout = ctx.config.get<number>('obnoxiousModeTime');
@@ -825,29 +779,44 @@ async function checkOneExecution(
 		obnoxiousTimeout != null &&
 		idle >= obnoxiousTimeout;
 
-	const { triggerIdleNow, isObnoxious } = computeIdleTrigger(
-		state, data, ctx.now, isPastIdle, isPastObnoxious, isObnoxiousMode,
-	);
+	const { triggerIdleNow, isObnoxious } = computeIdleTrigger({
+		isNotificationShowing: state.isNotificationShowing,
+		now: ctx.now,
+		lastNotificationCloseTime: state.lastNotificationCloseTime,
+		idleNotified: data.idleNotified,
+		obnoxiousNotified: data.obnoxiousNotified,
+		forceNextObnoxious: data.forceNextObnoxious,
+		isPastIdle,
+		isPastObnoxious,
+		isObnoxiousMode,
+	});
 	if (triggerIdleNow) {
 		fireIdleNotification(state, ctx.config, data, ctx.activeTerminal, cmdSummary, idle, isObnoxious);
 	}
 
 	// Auto-Terminate Check
 	if (
-		ctx.config.get<boolean>('enabled') &&
-		ctx.config.get<boolean>('autoTerminateEnabled') &&
-		idle >= (ctx.config.get<number>('autoTerminateTimeout') || 10) * 60
+		shouldAutoTerminate(
+			!!ctx.config.get<boolean>('enabled'),
+			!!ctx.config.get<boolean>('autoTerminateEnabled'),
+			idle,
+			ctx.config.get<number>('autoTerminateTimeout') || 10,
+		)
 	) {
 		await terminateExecution(state, data);
 		return { monitored: true, matchedActiveTerminal };
 	}
 
 	if (
-		ctx.config.get<boolean>('enabled') &&
-		!state.isNotificationShowing &&
-		ctx.now - state.lastNotificationCloseTime > 2000 &&
-		!data.totalNotified &&
-		elapsed >= (ctx.config.get<number>('totalTimeout') || 5) * 60
+		shouldFireTotalNotification({
+			enabled: !!ctx.config.get<boolean>('enabled'),
+			isNotificationShowing: state.isNotificationShowing,
+			now: ctx.now,
+			lastNotificationCloseTime: state.lastNotificationCloseTime,
+			totalNotified: data.totalNotified,
+			elapsedSeconds: elapsed,
+			totalTimeoutMinutes: ctx.config.get<number>('totalTimeout') || 5,
+		})
 	) {
 		fireTotalNotification(state, ctx.config, data, ctx.activeTerminal, cmdSummary, elapsed, isObnoxiousMode);
 	}

@@ -13,5 +13,10 @@
 		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
 		// "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
 		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
-	}
+	},
+	// The node --test unit gate (test/*.test.ts) runs on Node's native type
+	// stripping, not through this project - excluded here so it doesn't
+	// collide with rootDir "src", and so tsc/eslint never try to typecheck
+	// it against a vscode-flavoured config it was never written for.
+	"include": ["src/**/*"]
 }

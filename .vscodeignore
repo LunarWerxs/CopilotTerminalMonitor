@@ -1,6 +1,7 @@
 .vscode/**
 .vscode-test.mjs
 src/**
+test/**
 build_vsix.py
 build_vsix_tmon.py
 old_ikon/**
