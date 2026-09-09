@@ -2,6 +2,7 @@
 
 [![Version](https://img.shields.io/badge/version-1.4.2-blue.svg)](https://marketplace.visualstudio.com/items?itemName=LunarWerx.copilot-terminal-monitor)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.108.1+-007ACC.svg)](https://code.visualstudio.com/)
+[![Discord](https://img.shields.io/badge/Discord-join_the_community-5865F2?logo=discord&logoColor=white)](https://discord.gg/PsWpeNUzhk)
 
 ### Recommended Tools
 
